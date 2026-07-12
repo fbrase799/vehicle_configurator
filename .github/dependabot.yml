@@ -27,11 +27,6 @@ updates:
     schedule:
       interval: weekly
 
-  - package-ecosystem: docker
-    directory: /docker/database
-    schedule:
-      interval: weekly
-
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -1,6 +1,7 @@
 package com.configurator.model;
 
 import jakarta.persistence.*;
+import com.configurator.config.LocalDateTimeAttributeConverter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -24,6 +25,7 @@ public class Order {
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
 
+    @Convert(converter = LocalDateTimeAttributeConverter.class)
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

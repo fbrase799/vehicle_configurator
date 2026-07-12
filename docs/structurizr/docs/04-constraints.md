@@ -15,7 +15,7 @@
 ### From the target environment
 
 - **Monorepo** layout mandated in the PRD
-  (`backend/`, `frontend/`, `database/`, `docker/`, `docs/`, `azure/`).
+  (`backend/`, `frontend/`, `docker/`, `docs/`, `azure/`).
 - **Cloud target: Azure (West Europe)** — resource group
   `rg-vehicle-configurator`, runtime Azure Container Apps
   ([ADR-0007](#7-azure-container-apps)).

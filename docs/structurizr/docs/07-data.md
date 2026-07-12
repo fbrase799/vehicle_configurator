@@ -55,7 +55,7 @@ Formatted client-side with `Intl.NumberFormat('de-DE', …currency: 'EUR')`.
 
 ### Seed data
 
-The initial seed is embedded in `database/init/001-init.sql`:
+The initial seed is embedded in `backend/src/main/resources/db/001-init.sql`:
 
 - **1** car model (*Lamborghini Aventador LP700-4*, €362 199.40 base).
 - **4** engines tied to that model (LP700 / LP720 / LP750 SV / LP770 SVJ).

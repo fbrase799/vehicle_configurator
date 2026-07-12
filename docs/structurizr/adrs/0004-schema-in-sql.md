@@ -15,8 +15,8 @@ name-based column mapping collisions, no rollback story.
 ## Decision
 
 Set `spring.jpa.hibernate.ddl-auto=none`. All DDL and seed data live
-in `database/init/001-init.sql`, executed by the MySQL container's
-entrypoint on first start. Hibernate only maps; it never creates,
+in `backend/src/main/resources/db/001-init.sql`, executed by
+`DatabaseInitializer` on first backend start when the catalog is empty. Hibernate only maps; it never creates,
 drops, or mutates tables.
 
 ## Consequences
@@ -25,7 +25,7 @@ drops, or mutates tables.
   schema.
 - Entity-schema mismatches fail fast at first JPA use (during startup
   or first query).
-- Schema evolution is currently manual (edit `001-init.sql` on a fresh
+- Schema evolution is currently manual (edit `backend/src/main/resources/db/001-init.sql` on a fresh
   volume, or add `002-*.sql`). A proper migration tool (Flyway /
   Liquibase) should be adopted before the first real deployment —
   tracked as D-01 in the arc42 risk register.

@@ -5,7 +5,7 @@ the way it does.
 
 ### Dev/prod parity through containers
 
-All three runtime services — frontend, backend, database — run as
+All two runtime services — frontend, backend (with embedded SQLite) — run as
 containers locally (`docker/compose.yml`) and in Azure
 (`docker/compose.prod.yml` pulls the same GHCR images; ACA runs them
 directly). The *only* thing that changes between environments is a
@@ -29,9 +29,9 @@ a tampered client cannot store a fake total.
 ### Schema lives in SQL, not in code
 
 Hibernate is configured with `spring.jpa.hibernate.ddl-auto=none`.
-All DDL and seed data live in `database/init/001-init.sql`, are
-reviewable as SQL, and are re-applied predictably on every fresh
-database container. See [ADR-0004](#4-schema-in-sql-not-hibernate).
+All DDL and seed data live in `backend/src/main/resources/db/001-init.sql`, are
+reviewable as SQL, and are applied by `DatabaseInitializer` on first backend
+start when the catalog is empty. See [ADR-0004](#4-schema-in-sql-not-hibernate).
 
 ### Three.js scene is built once, mutated always
 

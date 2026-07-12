@@ -1,67 +1,67 @@
 -- Car models table (the base vehicle)
 CREATE TABLE IF NOT EXISTS car_models (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    brand VARCHAR(50) NOT NULL,
-    model_file VARCHAR(200) NOT NULL,
-    base_price DECIMAL(10, 2) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    brand TEXT NOT NULL,
+    model_file TEXT NOT NULL,
+    base_price NUMERIC(10, 2) NOT NULL,
     description TEXT
 );
 
 -- Engine options linked to specific car models
 CREATE TABLE IF NOT EXISTS engine_options (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    car_model_id INT NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    horsepower INT NOT NULL,
-    price DECIMAL(10, 2) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    car_model_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    horsepower INTEGER NOT NULL,
+    price NUMERIC(10, 2) NOT NULL,
     FOREIGN KEY (car_model_id) REFERENCES car_models(id)
 );
 
 CREATE TABLE IF NOT EXISTS paint_options (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    color_code VARCHAR(7) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    color_code TEXT NOT NULL,
+    price NUMERIC(10, 2) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS wheel_designs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    model_object VARCHAR(100) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    model_object TEXT NOT NULL,
+    price NUMERIC(10, 2) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS wheel_colors (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    color_code VARCHAR(7) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    color_code TEXT NOT NULL,
+    price NUMERIC(10, 2) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS caliper_colors (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    color_code VARCHAR(7) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    color_code TEXT NOT NULL,
+    price NUMERIC(10, 2) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS special_equipment (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
     description TEXT,
-    price DECIMAL(10, 2) NOT NULL
+    price NUMERIC(10, 2) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS configurations (
-    id VARCHAR(36) PRIMARY KEY,
-    car_model_id INT,
-    engine_id INT,
-    paint_id INT,
-    wheel_design_id INT,
-    wheel_color_id INT,
-    caliper_color_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id TEXT PRIMARY KEY,
+    car_model_id INTEGER,
+    engine_id INTEGER,
+    paint_id INTEGER,
+    wheel_design_id INTEGER,
+    wheel_color_id INTEGER,
+    caliper_color_id INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (car_model_id) REFERENCES car_models(id),
     FOREIGN KEY (engine_id) REFERENCES engine_options(id),
     FOREIGN KEY (paint_id) REFERENCES paint_options(id),
@@ -71,20 +71,20 @@ CREATE TABLE IF NOT EXISTS configurations (
 );
 
 CREATE TABLE IF NOT EXISTS configuration_equipment (
-    configuration_id VARCHAR(36),
-    equipment_id INT,
+    configuration_id TEXT,
+    equipment_id INTEGER,
     PRIMARY KEY (configuration_id, equipment_id),
     FOREIGN KEY (configuration_id) REFERENCES configurations(id),
     FOREIGN KEY (equipment_id) REFERENCES special_equipment(id)
 );
 
 CREATE TABLE IF NOT EXISTS orders (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    configuration_id VARCHAR(36) NOT NULL,
-    customer_name VARCHAR(200),
-    customer_email VARCHAR(200),
-    total_price DECIMAL(10, 2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    configuration_id TEXT NOT NULL,
+    customer_name TEXT,
+    customer_email TEXT,
+    total_price NUMERIC(10, 2) NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (configuration_id) REFERENCES configurations(id)
 );
 

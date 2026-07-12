@@ -40,7 +40,7 @@ The source of truth for APIs, tables and deployment details remains the
 code:
 
 - Backend REST surface → `backend/src/main/java/com/configurator/controller/ConfiguratorController.java`
-- Persistence model → `backend/src/main/java/com/configurator/model/*.java` and `database/init/001-init.sql`
+- Persistence model → `backend/src/main/java/com/configurator/model/*.java` and `backend/src/main/resources/db/001-init.sql`
 - Frontend entry → `frontend/src/main.js`, `frontend/src/pages/*.vue`
 - Local deployment → `docker/compose.yml`, `docker/compose.prod.yml`
 - Cloud deployment → `azure/*.sh`, `.github/workflows/azure-deploy.yml`

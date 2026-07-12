@@ -33,7 +33,7 @@ template.
   small; we do not need microservices.
 - **Decision:** One Spring Boot application with `spring-boot-starter-web`,
   `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, and
-  MySQL Connector/J. Virtual threads enabled (`spring.threads.virtual.enabled=true`).
+  SQLite JDBC driver. Virtual threads enabled (`spring.threads.virtual.enabled=true`).
 - **Alternatives considered:** Quarkus (rejected: less team familiarity);
   multi-module Maven (rejected: overkill).
 - **Consequences:**
@@ -68,9 +68,10 @@ template.
 - **Context:** Hibernate's `ddl-auto=update` is convenient in dev but a
   liability in prod (surprise column drops, name-based collisions).
 - **Decision:** `spring.jpa.hibernate.ddl-auto=none`; all DDL and seed
-  data live in `database/init/001-init.sql`, executed by the MySQL
-  entrypoint on first container start. Schema evolution happens by
-  appending new `*.sql` files – or, later, adopting Flyway/Liquibase.
+  data live in `backend/src/main/resources/db/001-init.sql`, executed by
+  `DatabaseInitializer` on first backend start when the catalog is empty.
+  Schema evolution happens by editing the init file – or, later, adopting
+  Flyway/Liquibase.
 - **Consequences:**
   - The SQL file is the single reviewable source of truth for the schema.
   - Entity changes that contradict the schema fail fast at first JPA use.
@@ -133,22 +134,27 @@ template.
   - Azure Container Instances – rejected: no built-in ingress, no
     scale-to-zero.
 - **Consequences:**
-  - Scale-to-zero on frontend and backend ⇒ near-zero cost when idle.
-  - MySQL replica must stay at 1 (stateful) – see risk R-03.
+  - Frontend and backend run with `minReplicas=1` for instant demo URL
+    access (no cold start for recruiters).
+  - SQLite embedded in backend – see ADR-008.
 
 ---
 
-## ADR-008 – MySQL as a Container App, not Azure Database for MySQL
+## ADR-008 – SQLite embedded in backend (replaces MySQL container)
 
-- **Status:** accepted, provisional
-- **Context:** A managed database costs more and takes longer to
-  provision than a prototype justifies.
-- **Decision:** Run MySQL as an ACA app with `min=max=1 replica`.
+- **Status:** accepted (supersedes the MySQL-as-Container-App decision)
+- **Context:** Demo orders/configurations only; recruiters need an
+  instantly reachable URL; a separate MySQL container added cost and
+  complexity without benefit.
+- **Decision:** Embed SQLite in the backend. Schema + seed in
+  `backend/src/main/resources/db/001-init.sql`, applied by
+  `DatabaseInitializer` on first start. Both ACA apps run with
+  `minReplicas=1`.
 - **Consequences:**
-  - Persistence lives on the replica's ephemeral filesystem. On ACA
-    replica recycling, data is **lost**. Acceptable for the prototype
-    but must change before going to any real user. See risk R-03 and
-    tech-debt D-02.
+  - Two containers instead of three; no database image or TCP ingress.
+  - Replica recycling wipes demo data; catalog re-seeds automatically.
+  - Backend `maxReplicas=1` (SQLite single-writer).
+  - Cloud cost ~€12–18/month (both apps always warm).
 
 ---
 

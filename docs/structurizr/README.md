@@ -31,10 +31,10 @@ All views are defined in `workspace.dsl` under the `views { … }` block.
 | View key | C4 level | Scope |
 |----------|----------|-------|
 | `SystemContext` | Level 1 – System Context | The Vehicle Configurator in its environment (end user, operator, GitHub, GHCR, Azure Container Apps). |
-| `Containers` | Level 2 – Containers | The three runtime containers: Frontend (Vue + nginx), Backend (Spring Boot), Database (MySQL). |
+| `Containers` | Level 2 – Containers | The two runtime containers: Frontend (Vue + nginx), Backend (Spring Boot + SQLite). |
 | `FrontendComponents` | Level 3 – Components | Internal decomposition of the Frontend container (App shell, Configurator page, Summary page, CarPreview3D, API client, nginx ingress). |
 | `BackendComponents` | Level 3 – Components | Internal decomposition of the Backend container (Controller, Service, Repositories, JPA entities, Application). |
-| `DatabaseComponents` | Level 3 – Components | Logical grouping of MySQL tables (catalog / configuration / orders). |
+| `BackendComponents` | Level 3 – Components | Backend internals including embedded SQLite table groups (catalog / configuration / orders). |
 | `LocalDeployment` | Deployment | Docker Compose stack on a developer laptop. |
 | `AzureDeployment` | Deployment | Azure Container Apps environment `vc-env` in resource group `rg-vehicle-configurator` (West Europe), backed by GHCR. |
 

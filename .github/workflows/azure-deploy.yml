@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   deploy:
-    name: az containerapp update (backend + frontend + database)
+    name: az containerapp update (backend + frontend)
     runs-on: ubuntu-latest
     # Don't deploy if the upstream publish workflow failed.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}

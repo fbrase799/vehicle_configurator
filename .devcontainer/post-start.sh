@@ -9,7 +9,7 @@ COMPOSE_FILE="docker/compose.prod.yml"
 echo ">>> Pulling latest images (fast if already cached)"
 docker compose -f "$COMPOSE_FILE" pull --quiet || true
 
-echo ">>> Starting database, backend, frontend"
+echo ">>> Starting backend, frontend"
 docker compose -f "$COMPOSE_FILE" up -d
 
 echo ">>> Waiting for backend to become ready on :8080 ..."

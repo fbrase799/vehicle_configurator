@@ -13,7 +13,7 @@ Three runtime containers cooperate:
 |-----------|------------|----------------|
 | **Frontend** | Vue 3 + Vite + three.js, served by nginx in prod | Serves static assets, proxies `/api/*` to the backend, provides the configurator + summary UIs including the live 3D preview. |
 | **Backend** | Spring Boot 4, Java 25 (virtual threads), JPA/Hibernate | Stateless REST API. Reads the catalog, validates and persists configurations and orders, computes the authoritative total price. |
-| **Database** | MySQL 8.4 | Stores the option catalog (seeded on first start), configurations, and orders. Schema applied by `database/init/001-init.sql`. |
+| **Database** | SQLite (embedded in backend) | Stores the option catalog (seeded on first start), configurations, and orders. Schema applied by `backend/src/main/resources/db/001-init.sql`. |
 
 Only the **Frontend** is exposed externally; the backend and database
 have *internal-only* ingress in the Azure deployment. See the
@@ -48,11 +48,11 @@ domain is small enough that the simple layering is the right answer.
 | **Repositories** | `com.configurator.repository.*` | Nine Spring Data JPA interfaces (one per entity) extending `JpaRepository`. No custom queries. |
 | **JPA entities** | `com.configurator.model.*` | `CarModel`, `EngineOption`, `PaintOption`, `WheelDesign`, `WheelColor`, `CaliperColor`, `SpecialEquipment`, `Configuration` (UUID PK), `Order`. `ddl-auto=none` — Hibernate only maps, never migrates. |
 
-### Database components (logical view)
+### SQLite table groups (logical view)
 
-![](embed:DatabaseComponents)
+![](embed:BackendComponents)
 
-The three logical groups inside the MySQL container are:
+The three logical groups inside the embedded SQLite store are:
 
 | Group | Tables | Purpose |
 |-------|--------|---------|

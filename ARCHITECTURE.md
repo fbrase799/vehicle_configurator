@@ -6,15 +6,17 @@ scenarios, risks, glossary, …) see [`docs/arc42/`](docs/arc42/README.md).
 
 ## At a glance
 
-- **Style:** classic 3-tier — SPA frontend, stateless REST backend,
-  relational database.
+- **Style:** SPA frontend + REST backend with embedded SQLite database.
 - **Frontend:** Vue 3 + Vite, with a live three.js 3D car preview.
-- **Backend:** Spring Boot 4 on Java 25 (virtual threads), JPA/Hibernate.
-- **Database:** MySQL 8.4, schema managed by an init SQL script
-  (Hibernate runs with `ddl-auto=none`).
-- **Packaging:** everything containerized; same images in dev and cloud.
+- **Backend:** Spring Boot 4 on Java 25 (virtual threads), JPA/Hibernate,
+  SQLite embedded in the backend container.
+- **Database:** SQLite, schema and seed data in
+  `backend/src/main/resources/db/001-init.sql` (applied on first start;
+  Hibernate runs with `ddl-auto=none`).
+- **Packaging:** two runtime containers; same images in dev and cloud.
 - **Cloud:** Azure Container Apps in West Europe, deployed via GitHub
-  Actions + OIDC federation.
+  Actions + OIDC federation. Both apps run with `minReplicas=1` so the
+  demo URL is always instantly reachable.
 
 ## System context
 
@@ -36,8 +38,9 @@ integrated in the prototype.
 
 ## Component diagram (containers)
 
-Three runtime containers cooperate. Only the frontend is exposed to
-the internet; the backend and database have internal ingress only.
+Two runtime containers cooperate. Only the frontend is exposed to
+the internet; the backend has internal ingress only. SQLite lives
+inside the backend container.
 
 ```mermaid
 flowchart LR
@@ -47,14 +50,12 @@ flowchart LR
 
     subgraph stack[Vehicle Configurator]
         fe["Frontend<br/>nginx + Vue 3 SPA<br/>(three.js live preview)"]
-        be["Backend<br/>Spring Boot REST API<br/>/api/*"]
-        db[("Database<br/>MySQL 8.4")]
+        be["Backend<br/>Spring Boot REST API<br/>/api/* + SQLite"]
     end
 
     browser -- "HTTPS: HTML / JS / aventador.glb" --> fe
     browser -- "HTTPS: /api/*  (proxied)" --> fe
     fe -- "HTTP: /api/*" --> be
-    be -- "JDBC :3306" --> db
 ```
 
 ## Component diagram (internal modules)
@@ -74,9 +75,10 @@ flowchart TB
         svc[service/<br/>ConfiguratorService]
         repo[repository/<br/>9 × JpaRepository]
         model[model/<br/>9 × JPA entities]
+        init[config/<br/>DatabaseInitializer]
     end
 
-    db[("MySQL 8.4<br/>catalog · configurations · orders")]
+    db[("SQLite<br/>catalog · configurations · orders")]
 
     app --> cfg
     app --> sum
@@ -90,6 +92,7 @@ flowchart TB
     svc --> repo
     repo --> model
     model -. maps to .-> db
+    init -. seeds on first start .-> db
 ```
 
 ### Key responsibilities
@@ -104,7 +107,8 @@ flowchart TB
 | `ConfiguratorController` | REST surface under `/api`; class-level `@CrossOrigin(origins="*")` for dev convenience. |
 | `ConfiguratorService` | Assembles configurations, generates their UUID, computes `calculateTotalPrice`, creates orders (`@Transactional`). |
 | `repository/*` | One Spring Data JPA interface per entity – no custom queries. |
-| `model/*` | JPA entities mapped to the tables in `database/init/001-init.sql`. |
+| `model/*` | JPA entities mapped to the tables in `backend/src/main/resources/db/001-init.sql`. |
+| `DatabaseInitializer` | Applies schema + seed SQL on first backend start when the catalog is empty. |
 
 ## Data model (core)
 
@@ -143,7 +147,7 @@ erDiagram
 
 `Configuration.id` is a server-generated UUID so that
 `/summary/<uuid>` is safe to share publicly. DDL and seed data live in
-[`database/init/001-init.sql`](database/init/001-init.sql).
+[`backend/src/main/resources/db/001-init.sql`](backend/src/main/resources/db/001-init.sql).
 
 ## Deployment – local (Docker Compose)
 
@@ -152,18 +156,16 @@ flowchart TB
     subgraph host[Developer workstation]
         subgraph net[docker network]
             fe["frontend<br/>Vite dev (bind-mounted src)<br/>:5173"]
-            be["backend<br/>Spring Boot<br/>:8080"]
-            db[("database<br/>MySQL 8.4 + volume db-data<br/>:3306")]
+            be["backend<br/>Spring Boot + SQLite<br/>:8080 + volume /data"]
         end
     end
     browser([Browser]) --> fe
     fe -- "/api → backend:8080<br/>(Vite proxy)" --> be
-    be --> db
 ```
 
 One-command start: `cd docker && docker compose up --build`.
 A second compose file (`docker/compose.prod.yml`) pulls the
-GHCR images – same three containers, nginx serves the SPA in the
+GHCR images – same two containers, nginx serves the SPA in the
 frontend, exactly as in the cloud.
 
 ## Deployment – cloud (Azure Container Apps)
@@ -173,33 +175,31 @@ flowchart TB
     subgraph rg["Resource group: rg-vehicle-configurator (West Europe)"]
         law[(Log Analytics<br/>vc-logs)]
         subgraph env["Container Apps environment: vc-env"]
-            feca["frontend<br/>nginx + SPA<br/>external HTTP :80"]
-            beca["backend<br/>Spring Boot<br/>internal HTTP :8080"]
-            dbca[("database<br/>MySQL 8.4<br/>internal TCP :3306<br/>min=max=1 replica")]
+            feca["frontend<br/>nginx + SPA<br/>external HTTP :80<br/>min=max=1 replica"]
+            beca["backend<br/>Spring Boot + SQLite<br/>internal HTTP :8080<br/>min=max=1 replica"]
         end
     end
 
     subgraph ghcr[GHCR]
         img_fe[vehicle_configurator-frontend:&lt;tag&gt;]
         img_be[vehicle_configurator-backend:&lt;tag&gt;]
-        img_db[vehicle_configurator-database:&lt;tag&gt;]
     end
 
     internet([Internet]) --> feca
     feca -- "nginx proxy /api/*<br/>→ backend.internal.&lt;env-fqdn&gt;" --> beca
-    beca -- JDBC --> dbca
     env --> law
 
     img_fe --> feca
     img_be --> beca
-    img_db --> dbca
 ```
 
 | Component | Ingress | Scaling |
 |-----------|---------|---------|
-| `frontend` | **external** HTTP :80 | 0 ↔ 2 replicas |
-| `backend` | **internal** HTTP :8080 | 0 ↔ 2 replicas |
-| `database` | **internal** TCP :3306 | 1 replica pinned (stateful) |
+| `frontend` | **external** HTTP :80 | 1 replica (always warm) |
+| `backend` | **internal** HTTP :8080 | 1 replica (always warm, SQLite embedded) |
+
+Both apps run with `minReplicas=1` so the public demo URL responds
+instantly — no cold start when a recruiter opens the link.
 
 Provisioning is driven from the laptop via idempotent shell scripts in
 [`azure/`](azure/):
@@ -207,9 +207,9 @@ Provisioning is driven from the laptop via idempotent shell scripts in
 - `00-bootstrap-oidc.sh` – creates the AAD app, federated credential
   (`repo:fbrase799/vehicle_configurator:ref:refs/heads/main`), and
   pushes the required GitHub secrets. One-off.
-- `01-setup.sh` – ensures RG, Log Analytics, env, and all three
-  container apps (idempotent).
-- `02-update-images.sh` – `az containerapp update --image … --revision-suffix` for all three apps; used locally and by CI.
+- `01-setup.sh` – ensures RG, Log Analytics, env, and both
+  container apps (idempotent). Removes a legacy `database` app if present.
+- `02-update-images.sh` – `az containerapp update --image … --revision-suffix` for both apps; used locally and by CI.
 - `03-teardown.sh` – prompts for confirmation, then `az group delete`.
 
 ## CI/CD pipeline
@@ -221,7 +221,7 @@ flowchart LR
     green -- no --> stop((stop))
     green -- yes --> main([push to main / tag v*.*.*])
     main --> pub[docker-publish.yml]
-    pub -->|"matrix: backend · frontend · database<br/>→ tags: latest · sha · semver"| ghcr[(GHCR)]
+    pub -->|"matrix: backend · frontend<br/>→ tags: latest · sha · semver"| ghcr[(GHCR)]
     pub -.-> deploy[azure-deploy.yml<br/>on workflow_run success]
     deploy --> oidc[azure/login OIDC]
     oidc --> upd[azure/02-update-images.sh]
@@ -229,10 +229,10 @@ flowchart LR
 ```
 
 - `ci.yml` – Java 25 backend build, Node 22 frontend build, and a
-  full smoke test that spins up `database + backend` via Compose and
+  full smoke test that spins up `backend` via Compose and
   exercises every REST endpoint (including `POST /api/configurations`
   → `GET /api/configurations/{id}` → `POST /api/orders`).
-- `docker-publish.yml` – matrix build for all three images, pushed to
+- `docker-publish.yml` – matrix build for both images, pushed to
   `ghcr.io/fbrase799/vehicle_configurator-<component>` with `latest`,
   short SHA, branch, and semver tags.
 - `azure-deploy.yml` – triggered on a successful `docker-publish`
@@ -249,8 +249,12 @@ flowchart LR
 - **3D preview mutates in place** – paint / wheel / caliper changes
   update material colors or toggle rim meshes; the scene is never
   rebuilt.
-- **Schema in SQL** – `database/init/001-init.sql` is the source of
-  truth; Hibernate does not manage DDL.
+- **Schema in SQL** – `backend/src/main/resources/db/001-init.sql` is the
+  source of truth; Hibernate does not manage DDL.
+- **SQLite embedded** – no separate database container; demo data only,
+  re-seeded when the catalog is empty after a replica restart.
+- **Always-warm cloud** – `minReplicas=1` on frontend and backend so
+  the demo URL works instantly for recruiters.
 - **Single theming point** – all colors / gradients are CSS custom
   properties in `frontend/src/App.vue` `:root`; rebranding is a
   one-file change.

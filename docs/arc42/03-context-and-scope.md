@@ -18,7 +18,7 @@ flowchart LR
 |-----------|-----------|---------|
 | **End user (browser)** | inbound | Browses the catalog, configures a car, receives a shareable URL, submits an order. The only human actor. |
 | **GitHub / GHCR** | build time | Source of truth for code and container images. CI pushes images, CD pulls them. |
-| **Azure Container Apps** | runtime | Managed runtime hosting the three containers. The application itself has no direct dependency on Azure APIs. |
+| **Azure Container Apps** | runtime | Managed runtime hosting the two containers (frontend + backend). The application itself has no direct dependency on Azure APIs. |
 
 No third-party business systems are integrated in the prototype
 (no payment gateway, no CRM, no dealer back-office).
@@ -37,14 +37,12 @@ flowchart LR
 
     subgraph stack[Vehicle Configurator stack]
         fe["Frontend container<br/>nginx + Vue SPA"]
-        be["Backend container<br/>Spring Boot REST API"]
-        db[("Database container<br/>MySQL 8.4")]
+        be["Backend container<br/>Spring Boot + SQLite"]
     end
 
     browser -- "HTTPS<br/>HTML / JS / GLB model" --> fe
     browser -- "HTTPS<br/>/api/* (proxied)" --> fe
     fe -- "HTTP<br/>/api/*" --> be
-    be -- "JDBC<br/>port 3306" --> db
 ```
 
 ### External interfaces
@@ -53,7 +51,6 @@ flowchart LR
 |---|---------|----------|----------|---------|-------|
 | I1 | Browser ↔ Frontend | `https://<fe-fqdn>/` | HTTPS | HTML, JS, CSS, `aventador.glb` (3D model) | Static assets served by nginx in prod, Vite dev server locally. |
 | I2 | Browser ↔ Backend (via proxy) | `https://<fe-fqdn>/api/*` | HTTPS → HTTP | JSON | nginx location block `proxy_pass http://${BACKEND_UPSTREAM}` forwards to the backend container. |
-| I3 | Backend ↔ Database | `database:3306` | JDBC (MySQL) | SQL | Credentials injected as env vars; database is reachable only inside the ACA environment. |
 
 ### Channel summary for the REST API
 
@@ -73,7 +70,7 @@ Everything else (paints, wheels, calipers, equipment) is idempotent
 
 - User accounts, passwords, roles.
 - Payment processing; "submit order" just persists name + email.
-- Production-grade database (managed MySQL, backups, HA).
+- Production-grade database (managed PostgreSQL/MySQL, backups, HA).
 - Email / notification delivery.
 - Multi-language / multi-currency logic (prices in EUR only).
 - Stock / availability checks.

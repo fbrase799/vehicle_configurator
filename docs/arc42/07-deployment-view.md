@@ -19,13 +19,11 @@ flowchart TB
     subgraph host[Developer workstation]
         subgraph net[docker network]
             fe["frontend<br/>Vite dev / nginx<br/>:5173 (dev) / :80 (prod)"]
-            be["backend<br/>Spring Boot<br/>:8080"]
-            db[("database<br/>MySQL 8.4<br/>:3306 + volume db-data")]
+            be["backend<br/>Spring Boot + SQLite<br/>:8080 + volume backend-data"]
         end
     end
     browser([Browser]) --> fe
     fe --> be
-    be --> db
 ```
 
 Key details:
@@ -42,9 +40,9 @@ Key details:
   `${BACKEND_UPSTREAM}` in a templated nginx config, so the same image
   can point to different backends (local compose, ACA FQDN, …) via a
   single env var.
-- **Database** always runs with a persistent named volume `db-data` and
-  a `mysqladmin ping` healthcheck; the init SQL is applied only on the
-  first start (standard MySQL image behaviour).
+- **Backend** embeds SQLite at `/data/configurator.db` (volume
+  `backend-data`). Schema and seed are applied by `DatabaseInitializer`
+  on first start when the catalog is empty.
 
 Environment files (`docker/env/*.env`) carry the credentials. They are
 identical across dev and the GHCR-backed compose stack to keep behaviour
@@ -57,36 +55,31 @@ flowchart TB
     subgraph rg["Resource group: rg-vehicle-configurator (West Europe)"]
         law[(Log Analytics<br/>vc-logs)]
         subgraph env[Container Apps environment: vc-env]
-            feca["frontend<br/>nginx+SPA<br/>external ingress :80"]
-            beca["backend<br/>Spring Boot<br/>internal ingress :8080<br/>(insecure allowed)"]
-            dbca[(database<br/>MySQL 8.4<br/>internal TCP :3306<br/>min=max=1 replica)]
+            feca["frontend<br/>nginx+SPA<br/>external ingress :80<br/>min=max=1"]
+            beca["backend<br/>Spring Boot + SQLite<br/>internal ingress :8080<br/>min=max=1"]
         end
     end
 
     subgraph ghcr[GHCR]
         img_fe[vehicle_configurator-frontend:&lt;tag&gt;]
         img_be[vehicle_configurator-backend:&lt;tag&gt;]
-        img_db[vehicle_configurator-database:&lt;tag&gt;]
     end
 
     internet([Internet / users]) --> feca
     feca -- "proxy /api/* to<br/>backend.internal.<env-fqdn>" --> beca
-    beca -- "JDBC" --> dbca
     env --> law
 
     img_fe --> feca
     img_be --> beca
-    img_db --> dbca
 ```
 
 | Azure resource | Name / Kind | Purpose |
 |----------------|-------------|---------|
 | Resource group | `rg-vehicle-configurator` | Groups everything; lifecycle managed by the `azure/*.sh` scripts. |
 | Log Analytics workspace | `vc-logs` | Collects stdout/stderr from all container apps. |
-| Container Apps environment | `vc-env` | Shared VNET + log sink for the three container apps. |
-| Container App `frontend` | external HTTP ingress :80 | nginx + SPA. Public FQDN printed by `01-setup.sh`. `BACKEND_UPSTREAM` points at `backend.internal.<env-fqdn>`. |
-| Container App `backend` | internal HTTP ingress :8080 | Spring Boot. Not reachable from the internet; only the frontend can call it through the env's internal DNS. |
-| Container App `database` | internal TCP ingress :3306 | Single-replica MySQL. Persistence is via the container filesystem of the running replica (see risk R-03 in section 11). |
+| Container Apps environment | `vc-env` | Shared VNET + log sink for the two container apps. |
+| Container App `frontend` | external HTTP ingress :80 | nginx + SPA. Public FQDN printed by `01-setup.sh`. Always warm (`minReplicas=1`). |
+| Container App `backend` | internal HTTP ingress :8080 | Spring Boot + embedded SQLite. Not reachable from the internet. Always warm (`minReplicas=1`). |
 
 Deployment is driven by scripts under `azure/`, sharing config in
 `azure/config.env`:
@@ -94,8 +87,8 @@ Deployment is driven by scripts under `azure/`, sharing config in
 | Script | Responsibility | Idempotent? |
 |--------|----------------|-------------|
 | `00-bootstrap-oidc.sh` | One-time: create Azure AD app `gh-vehicle-configurator-deployer`, assign Contributor on the RG scope, add a GitHub federated credential (`repo:fbrase799/vehicle_configurator:ref:refs/heads/main`), push `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` / `AZURE_SUBSCRIPTION_ID` as repo secrets. | Yes (reuses existing AAD app). |
-| `01-setup.sh` | Ensure CLI extensions and providers, create RG, Log Analytics, env, and the three container apps with the correct ingress/env vars/resources. | Yes. |
-| `02-update-images.sh` | Re-read backend internal FQDN, then `az containerapp update --image …` for all three apps with a short revision suffix (`GITHUB_SHA` in CI or a timestamp locally). Also re-asserts `BACKEND_UPSTREAM` on the frontend. | Yes; forces a new revision and re-pulls `:latest`. |
+| `01-setup.sh` | Ensure CLI extensions and providers, create RG, Log Analytics, env, and the two container apps with the correct ingress/env vars/resources. Removes a legacy `database` app if present. | Yes. |
+| `02-update-images.sh` | Re-read backend internal FQDN, then `az containerapp update --image …` for both apps with a short revision suffix (`GITHUB_SHA` in CI or a timestamp locally). Also re-asserts `BACKEND_UPSTREAM` on the frontend. | Yes; forces a new revision and re-pulls `:latest`. |
 | `03-teardown.sh` | Asks for confirmation (user must retype the RG name), then `az group delete --no-wait`. Leaves the AAD app and GitHub secrets intact so `01-setup.sh` can rebuild on demand. | N/A (destructive). |
 
 ## 7.3 CI/CD Pipeline

@@ -39,7 +39,6 @@ fi
 echo ">>> Revision suffix: $REV_SUFFIX"
 
 for pair in \
-  "$APP_DATABASE $IMAGE_DATABASE" \
   "$APP_BACKEND  $IMAGE_BACKEND"  \
   "$APP_FRONTEND $IMAGE_FRONTEND" ; do
   # shellcheck disable=SC2086
