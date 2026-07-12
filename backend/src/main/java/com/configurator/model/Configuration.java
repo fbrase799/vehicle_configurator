@@ -1,6 +1,7 @@
 package com.configurator.model;
 
 import jakarta.persistence.*;
+import com.configurator.config.LocalDateTimeAttributeConverter;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -43,6 +44,7 @@ public class Configuration {
     )
     private Set<SpecialEquipment> equipment = new HashSet<>();
 
+    @Convert(converter = LocalDateTimeAttributeConverter.class)
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

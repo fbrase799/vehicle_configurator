@@ -11,16 +11,16 @@ GitHub Actions workflow. Authentication from GitHub to Azure uses
 |---|---|---|
 | Resource group | `rg-vehicle-configurator` | Container for everything else |
 | Log Analytics workspace | `vc-logs` | Required by ACA for container logs |
-| Container Apps environment | `vc-env` | Network + DNS boundary for the three apps |
-| Container app | `database` | `mysql:8.4` with seed SQL baked in, internal TCP ingress on :3306, `minReplicas=1` |
-| Container app | `backend` | Spring Boot, internal HTTP on :8080, scales to zero |
-| Container app | `frontend` | nginx serving the Vue build, **external HTTPS** on :80, scales to zero |
+| Container Apps environment | `vc-env` | Network + DNS boundary for the two apps |
+| Container app | `backend` | Spring Boot + embedded SQLite, internal HTTP on :8080, **minReplicas=1** |
+| Container app | `frontend` | nginx serving the Vue build, **external HTTPS** on :80, **minReplicas=1** |
 
-App names deliberately match the local compose service names so the
-frontend's nginx can keep proxying to `http://backend:8080` and the
-backend can keep using `jdbc:mysql://database:3306/...` — the same
-images run locally, in Codespaces, and in Azure with no config
-changes.
+Both apps run with `minReplicas=1` so the public demo URL is always
+instantly reachable — no cold start when a recruiter opens the link.
+
+SQLite lives inside the backend container (`jdbc:sqlite:/data/configurator.db`).
+Orders and configurations are demo data only; replica recycling re-seeds
+the catalog on the next start.
 
 ## One-time setup
 
@@ -36,14 +36,17 @@ Steps:
 ./azure/00-bootstrap-oidc.sh     # creates AAD app, grants Contributor on the RG,
                                  # writes AZURE_CLIENT_ID / AZURE_TENANT_ID /
                                  # AZURE_SUBSCRIPTION_ID to GitHub repo secrets.
-./azure/01-setup.sh              # creates the RG, Log Analytics, ACA env, 3 apps.
+./azure/01-setup.sh              # creates the RG, Log Analytics, ACA env, 2 apps.
                                  # Prints the public URL at the end.
 ```
 
 From this point on, every push to `main`:
 
-1. Triggers `Publish Docker images` — builds backend, frontend, database images and pushes them to GHCR.
+1. Triggers `Publish Docker images` — builds backend and frontend images and pushes them to GHCR.
 2. On success, triggers `Deploy to Azure` — runs `02-update-images.sh`, which rolls each container app forward to `:latest`.
+
+`01-setup.sh` also removes a legacy `database` container app if one exists
+(from the pre-SQLite MySQL deployment).
 
 ## Day-to-day commands
 
@@ -80,8 +83,8 @@ AZ_LOCATION=germanywestcentral ./azure/01-setup.sh
 
 ## Cost
 
-- `frontend` and `backend` scale to zero — ~$0 while idle.
-- `database` runs with `minReplicas=1` (MySQL has no HTTP traffic for ACA to use as a scale trigger). 0.5 vCPU + 1 GiB memory running 24/7 costs roughly €10–15 / month in West Europe at the time of writing.
+- `frontend` and `backend` run with `minReplicas=1` (always warm for instant recruiter access).
+- Combined: 0.75 vCPU + 1.5 GiB memory running 24/7 costs roughly **€12–18 / month** in West Europe.
 - Log Analytics has a 5 GB / month free grant that this stack does not come close to consuming.
 
 To spend ~zero: run `01-setup.sh` right before a demo, `03-teardown.sh` right after. Each takes 3–5 minutes.
@@ -91,7 +94,6 @@ To spend ~zero: run `01-setup.sh` right before a demo, `03-teardown.sh` right af
 ```bash
 az containerapp logs show -g rg-vehicle-configurator -n backend  --tail 100 --follow
 az containerapp logs show -g rg-vehicle-configurator -n frontend --tail 100 --follow
-az containerapp logs show -g rg-vehicle-configurator -n database --tail 100 --follow
 
 az containerapp revision list -g rg-vehicle-configurator -n backend -o table
 ```
@@ -99,5 +101,5 @@ az containerapp revision list -g rg-vehicle-configurator -n backend -o table
 ## What this setup does NOT do
 
 - No custom domain / HTTPS certificate (uses the default `*.azurecontainerapps.io` FQDN).
-- No persistent database — every cold start of `database` reseeds from `database/init/*.sql`. This is intentional per the demo requirements; swap the `database` app for **Azure Database for MySQL Flexible Server** when you want persistence.
+- No persistent orders/configurations — replica recycling wipes demo data and re-seeds the catalog.
 - No network isolation — the environment uses the public profile. For enterprise deployments use `--internal-only` and VNet integration.

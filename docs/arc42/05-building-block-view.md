@@ -122,11 +122,11 @@ flowchart TB
 | `com.configurator.controller` | HTTP boundary. `ConfiguratorController` exposes `/api/options`, the catalog endpoints (`/api/car-models`, `/api/engines`, `/api/paints`, `/api/wheel-designs`, `/api/wheel-colors`, `/api/caliper-colors`, `/api/equipment`), `POST /api/configurations`, `GET /api/configurations/{id}`, and `POST /api/orders`. Class-level `@CrossOrigin(origins = "*")`. |
 | `com.configurator.service` | `ConfiguratorService` – the single place where business logic lives: aggregates the catalog for `/api/options`, validates and assembles a `Configuration` from an incoming `ConfigurationRequest`, generates the UUID, creates an `Order` from an `OrderRequest`, computes `calculateTotalPrice()`. |
 | `com.configurator.repository` | One Spring Data JPA interface per entity, all `extends JpaRepository<E, ID>`. No custom queries – method names and `findBy…` suffice. |
-| `com.configurator.model` | JPA entities mapped to the tables defined in `database/init/001-init.sql`. Catalog entities have `Integer` PKs (`IDENTITY`); `Configuration` has a `String` (UUID) PK; `Order` has an `Integer` PK and `@ManyToOne Configuration`. `Configuration ↔ SpecialEquipment` is `@ManyToMany` via the `configuration_equipment` join table. |
+| `com.configurator.model` | JPA entities mapped to the tables defined in `backend/src/main/resources/db/001-init.sql`. Catalog entities have `Integer` PKs (`IDENTITY`); `Configuration` has a `String` (UUID) PK; `Order` has an `Integer` PK and `@ManyToOne Configuration`. `Configuration ↔ SpecialEquipment` is `@ManyToMany` via the `configuration_equipment` join table. |
 
 ### 5.2.3 Database (whitebox)
 
-Schema overview (see `database/init/001-init.sql` for the authoritative
+Schema overview (see `backend/src/main/resources/db/001-init.sql` for the authoritative
 DDL):
 
 ```mermaid

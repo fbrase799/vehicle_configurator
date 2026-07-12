@@ -148,27 +148,24 @@ sequenceDiagram
     end
 ```
 
-## 6.6 Scenario 6 – First-time container startup (init + schema)
+## 6.6 Scenario 6 – First-time backend startup (init + schema)
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant BE as Backend container
-    participant DB as MySQL container
-    participant Init as init script 001-init.sql
+    participant Init as DatabaseInitializer
+    participant DB as SQLite file
 
-    Note over DB: docker entrypoint
-    DB->>DB: mysqld --initialize
-    DB->>Init: run /docker-entrypoint-initdb.d/001-init.sql
+    BE->>BE: Spring Boot starts
+    BE->>Init: ApplicationRunner (catalog empty?)
+    Init->>DB: apply backend/src/main/resources/db/001-init.sql
     Init->>DB: CREATE TABLEs (catalog, configurations, orders, join table)
     Init->>DB: INSERT seed rows (1 car model, 4 engines, 8 paints, ...)
-    DB-->>DB: healthcheck mysqladmin ping OK
-
-    BE->>DB: JPA connect (spring.datasource.url)
+    BE->>DB: JPA connect (jdbc:sqlite:/data/configurator.db)
     BE->>BE: Hibernate = map only (ddl-auto=none)
     BE-->>BE: Tomcat up on :8080
 ```
 
-The backend `depends_on` the database with `service_healthy` in
-`docker/compose.yml`, so the init script has always completed by the
-time the backend starts.
+`DatabaseInitializer` only runs the init script when `car_models` is
+empty, so restarts against an existing SQLite file skip re-seeding.

@@ -1,20 +1,4 @@
 services:
-  database:
-    image: mysql:8.4
-    container_name: configurator-db
-    env_file:
-      - ./env/database.env
-    ports:
-      - "3306:3306"
-    volumes:
-      - ../database/init:/docker-entrypoint-initdb.d:ro
-      - db-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ../backend
@@ -24,9 +8,8 @@ services:
       - ./env/backend.env
     ports:
       - "8080:8080"
-    depends_on:
-      database:
-        condition: service_healthy
+    volumes:
+      - backend-data:/data
 
   frontend:
     build:
@@ -56,4 +39,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  db-data:
+  backend-data:

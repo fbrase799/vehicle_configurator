@@ -56,17 +56,21 @@ vehicle-configurator/
 │   ├── package.json
 │   └── vite.config.js / angular.json / webpack.config.js
 │
-├── database/
-│   ├── init/
-│   │   └── 001-init.sql
-│   └── seeds/
+├── backend/
+│   ├── pom.xml
+│   └── src/
+│       ├── main/
+│       │   ├── java/com/configurator/
+│       │   └── resources/
+│       │       └── db/
+│       │           └── 001-init.sql
+│       └── test/
 │
 ├── docker/
 │   ├── compose.yml
 │   ├── env/
 │   │   ├── backend.env
-│   │   ├── frontend.env
-│   │   └── database.env
+│   │   └── frontend.env
 │   ├── frontend/
 │   │   ├── Dockerfile
 │   │   └── .dockerignore

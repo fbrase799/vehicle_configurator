@@ -35,10 +35,10 @@
 | **Compose file** | YAML file describing a multi-container application. This repo uses `docker/compose.yml` (dev, builds from source) and `docker/compose.prod.yml` (pulls from GHCR). |
 | **Multi-stage build** | Docker build with multiple `FROM` stages to produce a small final image. Used for both the backend (build + runtime) and frontend (deps + dev + build + prod/nginx). |
 | **GHCR** | GitHub Container Registry – `ghcr.io`. Hosts the three component images of this project. |
-| **Azure Container Apps (ACA)** | Managed serverless container platform on Azure. Runs all three containers of the production deployment. |
+| **Azure Container Apps (ACA)** | Managed serverless container platform on Azure. Runs both containers of the production deployment. |
 | **Container App environment** | The ACA construct grouping related container apps so they share a VNET, Log Analytics, and internal DNS. |
 | **Internal / external ingress** | ACA ingress modes. "Internal" means the app is only reachable from other apps in the same environment; "external" exposes a public FQDN. The backend and database are *internal*; only the frontend is *external*. |
 | **OIDC federation** | GitHub Actions ↔ Azure AD trust mechanism that trades a short-lived GitHub-issued token for an Azure access token, removing the need for stored service-principal secrets. |
-| **Log Analytics** | Azure log store. The workspace `vc-logs` receives stdout from all three container apps. |
+| **Log Analytics** | Azure log store. The workspace `vc-logs` receives stdout from both container apps. |
 | **Dependabot** | GitHub service that opens PRs for outdated dependencies. Configured to update Maven, npm, Docker base images, and GitHub Actions weekly. |
 | **arc42** | The architecture documentation template used for this document set. |

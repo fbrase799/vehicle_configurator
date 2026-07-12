@@ -88,9 +88,9 @@ die einen Code-Change auf das Zielsystem deployed.
 
 ### 4. Database Design
 
-- `configurations` — separate MySQL table holding the chosen options
+- `configurations` — SQLite table holding the chosen options
   per configuration (UUID primary key, FKs to each catalog table).
 - `configuration_equipment` — join table for the N:M relation to
   special equipment.
-- `orders` — separate MySQL table referencing a configuration plus
+- `orders` — SQLite table referencing a configuration plus
   customer data and the price snapshot at submission time.

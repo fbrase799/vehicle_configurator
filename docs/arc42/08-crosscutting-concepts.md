@@ -80,8 +80,8 @@ total = carModel.basePrice
 
 ## 8.3 Persistence
 
-- **Schema management** – DDL is in `database/init/001-init.sql` and
-  applied by the MySQL entrypoint on first start. Hibernate is
+- **Schema management** – DDL is in `backend/src/main/resources/db/001-init.sql` and
+  applied by `DatabaseInitializer` on first backend start when the catalog is empty. Hibernate is
   configured with `ddl-auto=none` so it only maps; it never creates,
   drops or mutates tables. Any schema evolution is done by extending
   the SQL file (or adding `002-*.sql` etc.).

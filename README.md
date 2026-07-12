@@ -9,7 +9,7 @@ A web application for configuring vehicles with engine, paint, wheels, and speci
 
 - **Frontend:** Vue.js 3 with Vite
 - **Backend:** Java 25 with Spring Boot 4.0
-- **Database:** MySQL 8.4
+- **Database:** SQLite (embedded in backend)
 - **Infrastructure:** Docker Compose
 
 ## Quick Start
@@ -118,13 +118,13 @@ Automated pipelines run on GitHub Actions.
 - **`ci.yml`** — on every push and pull request:
   - Backend: Java 25 (Temurin) + `mvn verify`
   - Frontend: Node 22 + `npm run build`
-  - Integration: spins up `database` + `backend` via `docker compose`, smoke-tests every REST endpoint
+  - Integration: spins up `backend` via `docker compose`, smoke-tests every REST endpoint
 - **`docker-publish.yml`** — on push to `main` and `v*.*.*` tags:
-  - Builds and pushes both images to GitHub Container Registry:
+  - Builds and pushes images to GitHub Container Registry:
     - `ghcr.io/fbrase799/vehicle_configurator-backend`
     - `ghcr.io/fbrase799/vehicle_configurator-frontend`
   - Tags: `latest` (main), short SHA, branch name, semver on tag pushes
-- **`dependabot.yml`** — weekly updates for Maven, npm, Docker base images, and GitHub Actions
+- **`dependabot.yml`** — monthly grouped updates for Maven, npm, and GitHub Actions (at most one PR each)
 
 ## Project Structure
 
@@ -135,12 +135,15 @@ vehicle-configurator/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/
-│       │   ├── java/com/example/configurator/
+│       │   ├── java/com/configurator/
 │       │   │   ├── controller/
 │       │   │   ├── service/
 │       │   │   ├── model/
+│       │   │   ├── config/
 │       │   │   └── repository/
 │       │   └── resources/
+│       │       └── db/
+│       │           └── 001-init.sql
 │       └── test/
 │           └── java/
 │
@@ -153,17 +156,11 @@ vehicle-configurator/
 │   ├── package.json
 │   └── vite.config.js / angular.json / webpack.config.js
 │
-├── database/
-│   ├── init/
-│   │   └── 001-init.sql
-│   └── seeds/
-│
 ├── docker/
 │   ├── compose.yml
 │   ├── env/
 │   │   ├── backend.env
-│   │   ├── frontend.env
-│   │   └── database.env
+│   │   └── frontend.env
 │   ├── frontend/
 │   │   ├── Dockerfile
 │   │   └── .dockerignore

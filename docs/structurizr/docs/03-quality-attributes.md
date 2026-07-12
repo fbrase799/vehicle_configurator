@@ -27,7 +27,7 @@ The top three qualities driving the design, in priority order:
 ### 3. Evolvability
 
 - Adding a new option category (e.g. *interior trim*) is a recipe:
-  one new table in `001-init.sql`, one JPA entity, one repository, one
+  one new table in `backend/src/main/resources/db/001-init.sql`, one JPA entity, one repository, one
   reference in `Configuration`, one step section in `Configurator.vue`,
   and extend `ConfiguratorService.getAllOptions()`. See
   [ADR-0005](#5-aggregated-api-options-endpoint) for why this does not

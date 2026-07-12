@@ -1,4 +1,4 @@
-workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototype — a three-tier web application for configuring a car and submitting an order." {
+workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototype — a Vue frontend and Spring Boot backend with embedded SQLite." {
 
     !identifiers hierarchical
 
@@ -19,7 +19,7 @@ workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototyp
         github = softwareSystem "GitHub"                       "Source code hosting and CI/CD via GitHub Actions (repo: fbrase799/vehicle_configurator)." {
             tags "External"
         }
-        ghcr   = softwareSystem "GitHub Container Registry"    "Hosts the three component images as ghcr.io/fbrase799/vehicle_configurator-{frontend,backend,database}." {
+        ghcr   = softwareSystem "GitHub Container Registry"    "Hosts the two component images as ghcr.io/fbrase799/vehicle_configurator-{frontend,backend}." {
             tags "External"
         }
         azure  = softwareSystem "Azure Container Apps"         "Serverless container runtime (West Europe) used as the production deployment target." {
@@ -56,36 +56,37 @@ workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototyp
             // -----------------------------------------------------------
             // Backend container
             // -----------------------------------------------------------
-            backend = container "Backend" "Stateless REST API. Reads the catalog, validates and persists configurations and orders, computes totals. Virtual threads enabled." "Spring Boot 4, Java 25" {
+            backend = container "Backend" "REST API with embedded SQLite. Reads the catalog, validates and persists configurations and orders, computes totals. Virtual threads enabled." "Spring Boot 4, Java 25, SQLite" {
 
                 be_ctrl   = component "ConfiguratorController" "REST surface /api/*: options, car-models, engines, paints, wheel-designs, wheel-colors, caliper-colors, equipment, configurations, orders. Class-level @CrossOrigin(origins=\"*\")." "Spring @RestController"
                 be_svc    = component "ConfiguratorService"    "Business logic: aggregates catalog for /api/options, assembles Configuration, generates UUID, calculateTotalPrice(), creates orders (@Transactional)." "Spring @Service"
                 be_repos  = component "Repositories"           "Nine Spring Data JPA interfaces (one per entity), all extending JpaRepository. No custom queries." "Spring Data JPA"
                 be_model  = component "JPA entities"           "CarModel, EngineOption, PaintOption, WheelDesign, WheelColor, CaliperColor, SpecialEquipment, Configuration (UUID PK), Order. Hibernate ddl-auto=none." "JPA / Hibernate"
+                be_init   = component "DatabaseInitializer"    "Applies backend/src/main/resources/db/001-init.sql on first start when the catalog is empty." "Spring ApplicationRunner"
                 be_app    = component "Application"            "Spring Boot entry point (com.configurator.Application)." "Spring Boot"
+                be_sqlite = component "SQLite store"           "Embedded relational store at /data/configurator.db (catalog, configurations, orders)." "SQLite 3" {
+                    tags "Database"
+                }
+                db_catalog = component "Catalog tables"         "car_models, engine_options, paint_options, wheel_designs, wheel_colors, caliper_colors, special_equipment. Seeded on first start." "SQLite"
+                db_config  = component "Configuration tables"  "configurations (UUID PK) + join table configuration_equipment (≤ 5 rows per config)." "SQLite"
+                db_orders  = component "Order table"           "orders (FK to configurations, customer name/email, total_price, created_at)." "SQLite"
 
                 be_app    -> be_ctrl  "Bootstraps"
+                be_app    -> be_init  "Runs schema/seed on startup"
+                be_init   -> be_sqlite "Creates tables and seed rows in"
                 be_ctrl   -> be_svc   "Delegates business logic to"
                 be_svc    -> be_repos "Persists and reads through"
                 be_repos  -> be_model "Maps rows to"
-            }
-
-            // -----------------------------------------------------------
-            // Database container
-            // -----------------------------------------------------------
-            database = container "Database" "Relational store for catalog, configurations and orders. Schema and seed data applied by 001-init.sql on first start." "MySQL 8.4" {
-                tags "Database"
-
-                db_catalog = component "Catalog tables"         "car_models, engine_options, paint_options, wheel_designs, wheel_colors, caliper_colors, special_equipment. Seeded on first start." "MySQL"
-                db_config  = component "Configuration tables"  "configurations (UUID PK) + join table configuration_equipment (≤ 5 rows per config)." "MySQL"
-                db_orders  = component "Order table"           "orders (FK to configurations, customer name/email, total_price, created_at)." "MySQL"
+                be_repos  -> be_sqlite "Reads/writes via JDBC"
+                be_sqlite -> db_catalog "Contains"
+                be_sqlite -> db_config  "Contains"
+                be_sqlite -> db_orders  "Contains"
             }
 
             // -----------------------------------------------------------
             // Relationships across containers
             // -----------------------------------------------------------
             frontend.fe_api    -> backend.be_ctrl  "Calls JSON REST endpoints on" "HTTPS /api/*"
-            backend.be_repos   -> database         "Reads/writes via"             "JDBC :3306"
         }
 
         // ---------------------------------------------------------------
@@ -114,15 +115,11 @@ workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototyp
                             local_fe = containerInstance vc.frontend
                         }
 
-                        local_be_node = deploymentNode "backend container" "Built from docker/backend/Dockerfile. Multi-stage (Maven → JRE 25). Publishes :8080." "Java 25 / Spring Boot fat-jar" {
+                        local_be_node = deploymentNode "backend container" "Built from docker/backend/Dockerfile. Multi-stage (Maven → JRE 25). SQLite at /data/configurator.db (volume backend-data). Publishes :8080." "Java 25 / Spring Boot fat-jar" {
                             local_be = containerInstance vc.backend
                         }
 
-                        local_db_node = deploymentNode "database container" "Image mysql:8.4. Bind-mounts ../database/init into /docker-entrypoint-initdb.d. Healthcheck = mysqladmin ping. Publishes :3306." "MySQL 8.4" {
-                            local_db = containerInstance vc.database
-                        }
-
-                        local_db_volume = infrastructureNode "db-data volume" "Named Docker volume mounted at /var/lib/mysql for MySQL persistence across container restarts." "Docker volume"
+                        local_be_volume = infrastructureNode "backend-data volume" "Named Docker volume mounted at /data for SQLite persistence across container restarts." "Docker volume"
                     }
                 }
             }
@@ -136,18 +133,14 @@ workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototyp
 
                     az_law = infrastructureNode "Log Analytics: vc-logs" "Collects stdout/stderr from all container apps." "Log Analytics workspace"
 
-                    az_env = deploymentNode "Container Apps environment: vc-env" "Shared VNET + log sink for the three container apps; provides internal DNS <app>.internal.<envDefaultDomain>." "Azure Container Apps environment" {
+                    az_env = deploymentNode "Container Apps environment: vc-env" "Shared VNET + log sink for the two container apps; provides internal DNS <app>.internal.<envDefaultDomain>." "Azure Container Apps environment" {
 
-                        az_fe_app = deploymentNode "frontend Container App" "External HTTP ingress on :80. Min 0 / max 2 replicas, 0.25 CPU / 0.5 GiB. BACKEND_UPSTREAM points at backend.internal.<envDefaultDomain>." "Azure Container App (nginx)" {
+                        az_fe_app = deploymentNode "frontend Container App" "External HTTP ingress on :80. Min=max=1 replica, 0.25 CPU / 0.5 GiB. Always warm for instant demo URL." "Azure Container App (nginx)" {
                             az_fe_instance = containerInstance vc.frontend
                         }
 
-                        az_be_app = deploymentNode "backend Container App" "Internal HTTP ingress on :8080 (--allow-insecure). Min 0 / max 2 replicas, 0.5 CPU / 1 GiB." "Azure Container App (JVM)" {
+                        az_be_app = deploymentNode "backend Container App" "Internal HTTP ingress on :8080 (--allow-insecure). Min=max=1 replica, 0.5 CPU / 1 GiB. SQLite embedded at /data/configurator.db." "Azure Container App (JVM)" {
                             az_be_instance = containerInstance vc.backend
-                        }
-
-                        az_db_app = deploymentNode "database Container App" "Internal TCP ingress on :3306. Min=max=1 replica, 0.5 CPU / 1 GiB. Stateful — storage is the replica filesystem." "Azure Container App (MySQL 8.4)" {
-                            az_db_instance = containerInstance vc.database
                         }
                     }
                 }
@@ -155,8 +148,7 @@ workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototyp
 
             az_ghcr_node = deploymentNode "GHCR" "Public container registry that backs the ACA deployment." "ghcr.io" {
                 az_img_fe = infrastructureNode "vehicle_configurator-frontend:<tag>" "Multi-stage nginx image (frontend prod)." "Container image"
-                az_img_be = infrastructureNode "vehicle_configurator-backend:<tag>"  "Spring Boot fat-jar on Temurin 25 JRE."  "Container image"
-                az_img_db = infrastructureNode "vehicle_configurator-database:<tag>" "mysql:8.4 + init scripts baked in."      "Container image"
+                az_img_be = infrastructureNode "vehicle_configurator-backend:<tag>"  "Spring Boot fat-jar on Temurin 25 JRE with embedded SQLite."  "Container image"
             }
         }
     }
@@ -171,7 +163,7 @@ workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototyp
             autolayout lr
         }
 
-        container vc "Containers" "C4 Level 2 — The three runtime containers of the Vehicle Configurator." {
+        container vc "Containers" "C4 Level 2 — The two runtime containers of the Vehicle Configurator." {
             include *
             autolayout lr
         }
@@ -181,14 +173,9 @@ workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototyp
             autolayout tb
         }
 
-        component vc.backend "BackendComponents" "C4 Level 3 — Internal components of the Backend container." {
+        component vc.backend "BackendComponents" "C4 Level 3 — Internal components of the Backend container (including embedded SQLite)." {
             include *
             autolayout tb
-        }
-
-        component vc.database "DatabaseComponents" "C4 Level 3 — Logical grouping of tables inside MySQL." {
-            include *
-            autolayout lr
         }
 
         deployment vc "Local (Docker Compose)" "LocalDeployment" "Deployment view — one-command local stack via `docker compose up`." {
