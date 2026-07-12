@@ -1,7 +1,7 @@
 # Vehicle Configurator
 
-[![CI](https://github.com/fbrase-itk/vehicle_configurator/actions/workflows/ci.yml/badge.svg)](https://github.com/fbrase-itk/vehicle_configurator/actions/workflows/ci.yml)
-[![Publish Docker images](https://github.com/fbrase-itk/vehicle_configurator/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/fbrase-itk/vehicle_configurator/actions/workflows/docker-publish.yml)
+[![CI](https://github.com/fbrase799/vehicle_configurator/actions/workflows/ci.yml/badge.svg)](https://github.com/fbrase799/vehicle_configurator/actions/workflows/ci.yml)
+[![Publish Docker images](https://github.com/fbrase799/vehicle_configurator/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/fbrase799/vehicle_configurator/actions/workflows/docker-publish.yml)
 
 A web application for configuring vehicles with engine, paint, wheels, and special equipment options.
 
@@ -121,8 +121,8 @@ Automated pipelines run on GitHub Actions.
   - Integration: spins up `database` + `backend` via `docker compose`, smoke-tests every REST endpoint
 - **`docker-publish.yml`** — on push to `main` and `v*.*.*` tags:
   - Builds and pushes both images to GitHub Container Registry:
-    - `ghcr.io/fbrase-itk/vehicle_configurator-backend`
-    - `ghcr.io/fbrase-itk/vehicle_configurator-frontend`
+    - `ghcr.io/fbrase799/vehicle_configurator-backend`
+    - `ghcr.io/fbrase799/vehicle_configurator-frontend`
   - Tags: `latest` (main), short SHA, branch name, semver on tag pushes
 - **`dependabot.yml`** — weekly updates for Maven, npm, Docker base images, and GitHub Actions
 

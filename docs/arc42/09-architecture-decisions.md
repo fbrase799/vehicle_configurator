@@ -160,7 +160,7 @@ template.
   compliance risk.
 - **Decision:** Use Azure AD workload identity federation. A single
   `gh-vehicle-configurator-deployer` app registration trusts
-  `repo:fbrase-itk/vehicle_configurator:ref:refs/heads/main` via the
+  `repo:fbrase799/vehicle_configurator:ref:refs/heads/main` via the
   GitHub OIDC issuer. `azure/login@v2` exchanges the ephemeral OIDC
   token for an Azure access token.
 - **Consequences:**

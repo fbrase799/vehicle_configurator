@@ -49,8 +49,23 @@ From this point on, every push to `main`:
 
 ```bash
 ./azure/02-update-images.sh      # force a redeploy from local shell
-./azure/03-teardown.sh           # delete the RG (stops all billing)
+./azure/03-teardown.sh           # cost-stop: delete the RG, KEEP OIDC bootstrap
+./azure/04-delete.sh             # full nuke: delete the RG AND undo 00-bootstrap-oidc.sh
 ```
+
+`03-teardown.sh` is the everyday "stop billing after a demo" command.
+It deletes the resource group (returns immediately, `--no-wait`) and
+intentionally leaves the AAD app, federated credential and GitHub
+secrets in place so the next `01-setup.sh` works without re-running
+`00-bootstrap-oidc.sh`.
+
+`04-delete.sh` is the full reset. It deletes the resource group and
+**blocks** until it is fully gone (the ACA managed environment delete
+takes 10–30 min asynchronously), then deletes the AAD app — which
+cascades to its service principal and federated credential — and finally
+removes `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+from the GitHub repo. After this you have to re-run
+`00-bootstrap-oidc.sh` before `01-setup.sh` will work again.
 
 You can also trigger the deploy workflow manually from the GitHub Actions tab ("Deploy to Azure" → **Run workflow**), which is useful after a teardown + setup when you want to redeploy without pushing a commit.
 

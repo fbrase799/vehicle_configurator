@@ -20,7 +20,7 @@ decisions already made upstream.
 
 | # | Constraint | Source | Consequence |
 |---|------------|--------|-------------|
-| O1 | Code hosted on **GitHub**, repo `fbrase-itk/vehicle_configurator`. | Task-3 | CI/CD via GitHub Actions, images on GHCR, OIDC federation to Azure. |
+| O1 | Code hosted on **GitHub**, repo `fbrase799/vehicle_configurator`. | Task-3 | CI/CD via GitHub Actions, images on GHCR, OIDC federation to Azure. |
 | O2 | Target cloud is **Azure** (West Europe). | Task-4 | Resource group `rg-vehicle-configurator`; Azure Container Apps as runtime. |
 | O3 | Prototype scope – no SLAs, no 24/7 availability, cost-sensitive. | Task-1 "minimal version first" | Single replica per service, scale-to-zero for stateless apps, MySQL as a container (no managed PaaS database). |
 | O4 | Deployment must be **automatable and tear-down-able** from a laptop. | Task-4 | `azure/00..03-*.sh` shell scripts, idempotent, driven by `config.env`. |
@@ -36,4 +36,4 @@ decisions already made upstream.
   and relies on a proxy (Vite dev proxy in dev, nginx `/api/` location
   in prod) to reach the backend.
 - Docker image names are lowercased and follow
-  `ghcr.io/fbrase-itk/vehicle_configurator-<component>`.
+  `ghcr.io/fbrase799/vehicle_configurator-<component>`.

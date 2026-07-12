@@ -23,7 +23,7 @@ problems:
 Use **workload identity federation**. An Azure AD app registration
 (`gh-vehicle-configurator-deployer`) trusts the GitHub OIDC issuer for
 the subject
-`repo:fbrase-itk/vehicle_configurator:ref:refs/heads/main`. The
+`repo:fbrase799/vehicle_configurator:ref:refs/heads/main`. The
 workflow's `id-token: write` permission requests a short-lived JWT,
 which `azure/login@v2` exchanges for an Azure access token.
 

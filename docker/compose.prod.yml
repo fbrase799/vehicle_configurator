@@ -2,7 +2,7 @@ services:
   database:
     # Self-contained image that bakes in database/init/*.sql, so this
     # compose file works on any host without a repo checkout.
-    image: ghcr.io/fbrase-itk/vehicle_configurator-database:${DATABASE_TAG:-latest}
+    image: ghcr.io/fbrase799/vehicle_configurator-database:${DATABASE_TAG:-latest}
     container_name: configurator-db
     env_file:
       - ./env/database.env
@@ -17,7 +17,7 @@ services:
       retries: 5
 
   backend:
-    image: ghcr.io/fbrase-itk/vehicle_configurator-backend:${BACKEND_TAG:-latest}
+    image: ghcr.io/fbrase799/vehicle_configurator-backend:${BACKEND_TAG:-latest}
     container_name: configurator-backend
     env_file:
       - ./env/backend.env
@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/fbrase-itk/vehicle_configurator-frontend:${FRONTEND_TAG:-latest}
+    image: ghcr.io/fbrase799/vehicle_configurator-frontend:${FRONTEND_TAG:-latest}
     container_name: configurator-frontend
     env_file:
       - ./env/frontend.env

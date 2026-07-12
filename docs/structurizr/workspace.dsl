@@ -16,10 +16,10 @@ workspace "Vehicle Configurator" "C4 model for the Vehicle Configurator prototyp
         // ---------------------------------------------------------------
         // External systems
         // ---------------------------------------------------------------
-        github = softwareSystem "GitHub"                       "Source code hosting and CI/CD via GitHub Actions (repo: fbrase-itk/vehicle_configurator)." {
+        github = softwareSystem "GitHub"                       "Source code hosting and CI/CD via GitHub Actions (repo: fbrase799/vehicle_configurator)." {
             tags "External"
         }
-        ghcr   = softwareSystem "GitHub Container Registry"    "Hosts the three component images as ghcr.io/fbrase-itk/vehicle_configurator-{frontend,backend,database}." {
+        ghcr   = softwareSystem "GitHub Container Registry"    "Hosts the three component images as ghcr.io/fbrase799/vehicle_configurator-{frontend,backend,database}." {
             tags "External"
         }
         azure  = softwareSystem "Azure Container Apps"         "Serverless container runtime (West Europe) used as the production deployment target." {

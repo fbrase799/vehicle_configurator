@@ -31,4 +31,4 @@
   `frontend/src/App.vue`; components reference them via `var(--token)`.
 - API base path is always `/api`, called with relative URLs from the
   frontend (Vite dev proxy in dev, nginx in prod).
-- Container images follow `ghcr.io/fbrase-itk/vehicle_configurator-<component>`.
+- Container images follow `ghcr.io/fbrase799/vehicle_configurator-<component>`.

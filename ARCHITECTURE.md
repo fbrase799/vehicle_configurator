@@ -205,7 +205,7 @@ Provisioning is driven from the laptop via idempotent shell scripts in
 [`azure/`](azure/):
 
 - `00-bootstrap-oidc.sh` – creates the AAD app, federated credential
-  (`repo:fbrase-itk/vehicle_configurator:ref:refs/heads/main`), and
+  (`repo:fbrase799/vehicle_configurator:ref:refs/heads/main`), and
   pushes the required GitHub secrets. One-off.
 - `01-setup.sh` – ensures RG, Log Analytics, env, and all three
   container apps (idempotent).
@@ -233,7 +233,7 @@ flowchart LR
   exercises every REST endpoint (including `POST /api/configurations`
   → `GET /api/configurations/{id}` → `POST /api/orders`).
 - `docker-publish.yml` – matrix build for all three images, pushed to
-  `ghcr.io/fbrase-itk/vehicle_configurator-<component>` with `latest`,
+  `ghcr.io/fbrase799/vehicle_configurator-<component>` with `latest`,
   short SHA, branch, and semver tags.
 - `azure-deploy.yml` – triggered on a successful `docker-publish`
   run on `main`; logs into Azure via OIDC (no long-lived secrets) and

@@ -93,7 +93,7 @@ Deployment is driven by scripts under `azure/`, sharing config in
 
 | Script | Responsibility | Idempotent? |
 |--------|----------------|-------------|
-| `00-bootstrap-oidc.sh` | One-time: create Azure AD app `gh-vehicle-configurator-deployer`, assign Contributor on the RG scope, add a GitHub federated credential (`repo:fbrase-itk/vehicle_configurator:ref:refs/heads/main`), push `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` / `AZURE_SUBSCRIPTION_ID` as repo secrets. | Yes (reuses existing AAD app). |
+| `00-bootstrap-oidc.sh` | One-time: create Azure AD app `gh-vehicle-configurator-deployer`, assign Contributor on the RG scope, add a GitHub federated credential (`repo:fbrase799/vehicle_configurator:ref:refs/heads/main`), push `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` / `AZURE_SUBSCRIPTION_ID` as repo secrets. | Yes (reuses existing AAD app). |
 | `01-setup.sh` | Ensure CLI extensions and providers, create RG, Log Analytics, env, and the three container apps with the correct ingress/env vars/resources. | Yes. |
 | `02-update-images.sh` | Re-read backend internal FQDN, then `az containerapp update --image …` for all three apps with a short revision suffix (`GITHUB_SHA` in CI or a timestamp locally). Also re-asserts `BACKEND_UPSTREAM` on the frontend. | Yes; forces a new revision and re-pulls `:latest`. |
 | `03-teardown.sh` | Asks for confirmation (user must retype the RG name), then `az group delete --no-wait`. Leaves the AAD app and GitHub secrets intact so `01-setup.sh` can rebuild on demand. | N/A (destructive). |
